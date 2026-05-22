@@ -1,0 +1,30 @@
+page {
+  background: #f5f6f8;
+  font-family:
+    "PingFang SC",
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
+  color: #323233;
+}
+
+.page-container {
+  min-height: 100vh;
+  padding: 24px;
+  padding-bottom: calc(24px + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+}
+
+.section-title {
+  font-size: 30px;
+  font-weight: 600;
+  color: #323233;
+  margin: 32px 0 16px;
+}
+
+.card-block {
+  background: #fff;
+  border-radius: 16px;
+  overflow: hidden;
+  margin-bottom: 24px;
+}
