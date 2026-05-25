@@ -33,8 +33,6 @@ function App({ children }: PropsWithChildren) {
   }
 
   useLaunch(() => {
-    Taro.clearStorage()
-    // 版本检测
     checkVersion()
 
     Taro.getSystemInfo({

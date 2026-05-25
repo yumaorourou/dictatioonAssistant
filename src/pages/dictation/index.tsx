@@ -176,7 +176,7 @@ export default function DictationPage() {
         </View>
       </View>
 
-      <Button plain block onClick={() => Taro.navigateBack()} className='dictation__back-btn'>
+      <Button plain block onClick={() => Taro.switchTab({ url: '/pages/index/index' })} className='dictation__back-btn'>
         返回
       </Button>
     </View>

@@ -2,9 +2,7 @@ import { useCallback, useState } from 'react'
 import { View, Text, ScrollView } from '@tarojs/components'
 import Taro, { useDidShow } from '@tarojs/taro'
 import {
-  Button,
   Cell,
-  Dialog,
   Empty,
   Icon,
   SwipeCell,
@@ -71,17 +69,16 @@ export default function IndexPage() {
     }
   }
 
-  const confirmDelete = (record: DictationRecord) => {
-    Dialog.confirm({
+  const confirmDelete = async (record: DictationRecord) => {
+    const { confirm } = await Taro.showModal({
       title: '删除记录',
-      message: `确定删除「${record.title}」吗？`,
+      content: `确定删除「${record.title}」吗？`,
     })
-      .then(() => {
-        deleteRecord(record.id)
-        setRecords((prev) => prev.filter((r) => r.id !== record.id))
-        Taro.showToast({ title: '已删除', icon: 'success' })
-      })
-      .catch(() => { })
+    if (!confirm) return
+
+    deleteRecord(record.id)
+    setRecords((prev) => prev.filter((r) => r.id !== record.id))
+    Taro.showToast({ title: '已删除', icon: 'success' })
   }
 
 
@@ -135,14 +132,15 @@ export default function IndexPage() {
                   <SwipeCell
                     key={record.id}
                     rightWidth={70}
+                    onClick={(e) => {
+                      if (e.detail?.position === 'right') {
+                        confirmDelete(record)
+                      }
+                    }}
                     renderRight={
-                      <Button
-                        type='danger'
-                        style={{ height: '100%' }}
-                        onClick={() => confirmDelete(record)}
-                      >
-                        删除
-                      </Button>
+                      <View className='home__delete-btn'>
+                        <Text className='home__delete-text'>删除</Text>
+                      </View>
                     }
                   >
                     <Cell

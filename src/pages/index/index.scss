@@ -75,6 +75,20 @@
     }
   }
 
+  &__delete-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    background-color: #ee0a24;
+  }
+
+  &__delete-text {
+    color: #ffffff;
+    font-size: 28px;
+  }
+
   &__user {
     margin-top: 48px;
     display: flex;
