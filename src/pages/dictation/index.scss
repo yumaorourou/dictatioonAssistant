@@ -151,10 +151,22 @@
     }
   }
 
+  &__finish-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  &__grade-btn {
+    background: #333 !important;
+    border-color: #333 !important;
+    color: #fff !important;
+  }
+
   &__back-btn {
-    margin-top: 48px;
+    margin-top: 24px;
     border: 4px solid #333333;
-    width: 200px;
   }
 
   &__login-hint {

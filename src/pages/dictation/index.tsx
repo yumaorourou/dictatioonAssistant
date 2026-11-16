@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { View, Text } from '@tarojs/components'
-import Taro, { useLoad } from '@tarojs/taro'
+import Taro, { useLoad, useShareAppMessage } from '@tarojs/taro'
 import {
   Button,
   Icon,
@@ -9,7 +9,15 @@ import {
   Switch,
 } from '@antmjs/vantui'
 import { useDictationPlayer } from '@/hooks/useDictationPlayer'
-import { getSession, itemsToWords } from '@/utils/storage'
+import {
+  createGradingAttempt,
+  createTaskFromWords,
+  getSession,
+  itemsToWords,
+  saveTask,
+  setSession,
+} from '@/utils/storage'
+import { buildSharePath, wasShareTruncated } from '@/utils/share'
 
 import './index.scss'
 
@@ -24,6 +32,9 @@ export default function DictationPage() {
   const [wordList, setWordList] = useState<string[]>([])
   const [speed, setSpeed] = useState(1)
   const [showWord, setShowWord] = useState(false)
+  const [taskTitle, setTaskTitle] = useState('听写练习')
+  const startedAtRef = useRef(Date.now())
+  const taskIdRef = useRef('')
 
   useLoad(() => {
     const session = getSession()
@@ -32,7 +43,29 @@ export default function DictationPage() {
       setTimeout(() => Taro.navigateBack(), 1500)
       return
     }
-    setWordList(itemsToWords(session.words))
+    const words = itemsToWords(session.words)
+    setWordList(words)
+    startedAtRef.current = session.startedAt || Date.now()
+    taskIdRef.current = session.taskId || ''
+    setTaskTitle(
+      session.mode === 'review'
+        ? '今日清怪'
+        : `听写 ${words.slice(0, 3).join('')}${words.length > 3 ? '…' : ''}`,
+    )
+
+    if (!session.startedAt) {
+      setSession({ ...session, startedAt: startedAtRef.current })
+    }
+  })
+
+  useShareAppMessage(() => {
+    if (wasShareTruncated(wordList)) {
+      Taro.showToast({ title: '词表较长，已截取前 40 个分享', icon: 'none' })
+    }
+    return {
+      title: `来一起听写：${taskTitle}`,
+      path: buildSharePath(wordList, taskTitle),
+    }
   })
 
   const player = useDictationPlayer(wordList, speed)
@@ -46,10 +79,56 @@ export default function DictationPage() {
     setSpeed(val)
   }
 
+  const goGrade = () => {
+    if (!wordList.length) {
+      Taro.showToast({ title: '暂无听写内容', icon: 'none' })
+      return
+    }
+
+    const playOrder = player.getPlayOrder()
+    let taskId = taskIdRef.current
+    if (!taskId) {
+      const task = createTaskFromWords(wordList, {
+        title: taskTitle,
+        playOrder,
+      })
+      taskId = task.id
+      taskIdRef.current = taskId
+    } else {
+      saveTask({
+        id: taskId,
+        title: taskTitle,
+        words: wordList,
+        playOrder,
+        createdAt: startedAtRef.current,
+      })
+    }
+
+    const attempt = createGradingAttempt({
+      taskId,
+      words: wordList,
+      startedAt: startedAtRef.current,
+    })
+
+    const session = getSession()
+    if (session) {
+      setSession({
+        ...session,
+        taskId,
+        attemptId: attempt.id,
+        startedAt: startedAtRef.current,
+      })
+    }
+
+    Taro.navigateTo({ url: `/pages/grade/index?attemptId=${attempt.id}` })
+  }
+
   return (
     <View className='dictation page-container'>
       <View className='dictation__display'>
-        <Text className='dictation__label'>当前播放</Text>
+        <Text className='dictation__label'>
+          {player.isFinished ? '听写已完成' : '当前播放'}
+        </Text>
         <Text className={`dictation__char ${showWord ? '' : 'dictation__char--hidden'}`}>
           {player.currentWord || '—'}
         </Text>
@@ -73,34 +152,53 @@ export default function DictationPage() {
         </Text>
       </View>
 
-      <View className='dictation__controls'>
-        <View
-          className='dictation__ctrl-btn'
-          onClick={player.goPrevious}
-        >
-          <Icon name='arrow-left' size='28px' />
-          <Text className='dictation__ctrl-btn-text'>上一个</Text>
+      {player.isFinished ? (
+        <View className='dictation__finish-actions'>
+          <Button className='dictation__grade-btn' block onClick={goGrade}>
+            去批改
+          </Button>
+          <Button
+            plain
+            block
+            onClick={() => {
+              player.applyRandom(player.isRandom)
+              player.togglePlay()
+            }}
+            className='dictation__back-btn'
+          >
+            再听一遍
+          </Button>
         </View>
-        <View className='dictation__ctrl-btn' onClick={player.replayCurrent}>
-          <Icon name='replay' size='28px' />
-          <Text className='dictation__ctrl-btn-text'>重播</Text>
+      ) : (
+        <View className='dictation__controls'>
+          <View
+            className='dictation__ctrl-btn'
+            onClick={player.goPrevious}
+          >
+            <Icon name='arrow-left' size='28px' />
+            <Text className='dictation__ctrl-btn-text'>上一个</Text>
+          </View>
+          <View className='dictation__ctrl-btn' onClick={player.replayCurrent}>
+            <Icon name='replay' size='28px' />
+            <Text className='dictation__ctrl-btn-text'>重播</Text>
+          </View>
+          <View
+            className='dictation__ctrl-btn dictation__ctrl-btn--primary'
+            onClick={player.togglePlay}
+          >
+            <Icon
+              name={player.isPlaying ? 'pause-circle-o' : 'play-circle-o'}
+              size='28px'
+              color='#333333'
+            />
+            <Text className='dictation__ctrl-btn-text'>{player.isPlaying ? '暂停' : player.isPaused ? '继续' : '开始'}</Text>
+          </View>
+          <View className='dictation__ctrl-btn' onClick={player.goNext}>
+            <Icon name='arrow' size='28px' />
+            <Text className='dictation__ctrl-btn-text'>下一个</Text>
+          </View>
         </View>
-        <View
-          className='dictation__ctrl-btn dictation__ctrl-btn--primary'
-          onClick={player.togglePlay}
-        >
-          <Icon
-            name={player.isPlaying ? 'pause-circle-o' : 'play-circle-o'}
-            size='28px'
-            color='#333333'
-          />
-          <Text className='dictation__ctrl-btn-text'>{player.isPlaying ? '暂停' : player.isPaused ? '继续' : '开始'}</Text>
-        </View>
-        <View className='dictation__ctrl-btn' onClick={player.goNext}>
-          <Icon name='arrow' size='28px' />
-          <Text className='dictation__ctrl-btn-text'>下一个</Text>
-        </View>
-      </View>
+      )}
 
       <View className='card-block dictation__settings'>
         <View className='dictation__setting-item'>
@@ -176,7 +274,13 @@ export default function DictationPage() {
         </View>
       </View>
 
-      <Button plain block onClick={() => Taro.switchTab({ url: '/pages/index/index' })} className='dictation__back-btn'>
+      {!player.isFinished ? (
+        <Button plain block onClick={goGrade} className='dictation__back-btn'>
+          提前批改
+        </Button>
+      ) : null}
+
+      <Button plain block onClick={() => Taro.navigateBack({ fail: () => Taro.reLaunch({ url: '/pages/index/index' }) })} className='dictation__back-btn'>
         返回
       </Button>
     </View>

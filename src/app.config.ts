@@ -15,6 +15,30 @@ export default defineAppConfig({
         'index',
       ],
     },
+    {
+      root: 'pages/grade',
+      pages: [
+        'index',
+      ],
+    },
+    {
+      root: 'pages/report',
+      pages: [
+        'index',
+      ],
+    },
+    {
+      root: 'pages/wrongbook',
+      pages: [
+        'index',
+      ],
+    },
+    {
+      root: 'pages/mistake-detail',
+      pages: [
+        'index',
+      ],
+    },
   ],
 
   window: {

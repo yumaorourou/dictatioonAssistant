@@ -1,36 +1,71 @@
 import { useCallback, useState } from 'react'
-import { View, Text, ScrollView } from '@tarojs/components'
-import Taro, { useDidShow } from '@tarojs/taro'
+import { View, Text, ScrollView, Button as TaroButton } from '@tarojs/components'
+import Taro, { useDidShow, useLoad, useShareAppMessage } from '@tarojs/taro'
 import {
-  Cell,
   Empty,
   Icon,
   SwipeCell,
 } from '@antmjs/vantui'
 import type { DictationRecord } from '@/types'
-import { isLoggedIn, getUserInfo, login } from '@/utils/auth'
 import {
+  createTaskFromWords,
   deleteRecord,
   formatRecordTime,
   getRecords,
+  getStreak,
+  getTodayReviewWords,
+  getLearningMistakeCards,
   setSession,
   wordsToItems,
 } from '@/utils/storage'
+import { buildSharePath, parseSharedWords, wasShareTruncated } from '@/utils/share'
 
 import './index.scss'
 
 export default function IndexPage() {
   const [records, setRecords] = useState<DictationRecord[]>([])
-  const [loggedIn, setLoggedIn] = useState(false)
-  const [nickName, setNickName] = useState('')
+  const [streakDays, setStreakDays] = useState(0)
+  const [todayCount, setTodayCount] = useState(0)
+  const [learningCount, setLearningCount] = useState(0)
+  const [shareWords, setShareWords] = useState<string[]>([])
+  const [shareTitle, setShareTitle] = useState('听写任务')
 
-  const loadRecords = useCallback(() => {
+  const loadHome = useCallback(() => {
     setRecords(getRecords())
-    setLoggedIn(isLoggedIn())
-    setNickName(getUserInfo()?.nickName || '')
+    setStreakDays(getStreak().streakDays)
+    setTodayCount(getTodayReviewWords().length)
+    setLearningCount(getLearningMistakeCards().length)
   }, [])
 
-  useDidShow(loadRecords)
+  useLoad((query) => {
+    const words = parseSharedWords(query?.words)
+    if (words.length) {
+      const title = query?.title ? decodeURIComponent(query.title) : '好友分享的听写'
+      const task = createTaskFromWords(words, { title })
+      setSession({
+        words: wordsToItems(words),
+        taskId: task.id,
+        mode: 'dictation',
+        startedAt: Date.now(),
+      })
+      Taro.navigateTo({ url: '/pages/dictation/index' })
+    }
+  })
+
+  useDidShow(loadHome)
+
+  useShareAppMessage(() => {
+    const words = shareWords.length
+      ? shareWords
+      : records[0]?.words || []
+    if (wasShareTruncated(words)) {
+      Taro.showToast({ title: '词表较长，已截取前 40 个分享', icon: 'none' })
+    }
+    return {
+      title: shareTitle || '一起来听写',
+      path: buildSharePath(words, shareTitle),
+    }
+  })
 
   const pickImage = async (sourceType: ('camera' | 'album')[]) => {
     try {
@@ -51,22 +86,34 @@ export default function IndexPage() {
   }
 
   const openRecord = (record: DictationRecord) => {
+    const task = createTaskFromWords(record.words, {
+      id: record.id,
+      title: record.title,
+    })
     setSession({
       words: wordsToItems(record.words),
       recordId: record.id,
+      taskId: task.id,
       imagePath: record.imagePath,
       imagePaths: record.imagePaths || (record.imagePath ? [record.imagePath] : []),
+      mode: 'dictation',
+      startedAt: Date.now(),
     })
     Taro.navigateTo({ url: '/pages/dictation/index' })
   }
 
-  const handleUserClick = async () => {
-    if (loggedIn) return
-    const ok = await login()
-    if (ok) {
-      setLoggedIn(true)
-      setNickName(getUserInfo()?.nickName || '')
+  const startTodayReview = () => {
+    const words = getTodayReviewWords()
+    if (!words.length) {
+      Taro.showToast({ title: '今日暂无待复习', icon: 'none' })
+      return
     }
+    setSession({
+      words: wordsToItems(words),
+      mode: 'review',
+      startedAt: Date.now(),
+    })
+    Taro.navigateTo({ url: '/pages/dictation/index' })
   }
 
   const confirmDelete = async (record: DictationRecord) => {
@@ -81,24 +128,34 @@ export default function IndexPage() {
     Taro.showToast({ title: '已删除', icon: 'success' })
   }
 
-
-
   return (
     <View className='home page-container'>
       <View className='home__hero'>
         <Text className='home__title'>听写助手</Text>
         <Text className='home__subtitle'>拍照识别生字，轻松完成听写练习</Text>
+        <View className='home__streak'>
+          <Text className='home__streak-num'>{streakDays}</Text>
+          <Text className='home__streak-label'>连续学习天数</Text>
+        </View>
       </View>
 
-      {/* <View className='home__user' onClick={handleUserClick}>
-        <View className='home__user-avatar'>
-          <Icon name={loggedIn ? 'passed' : 'user-o'} size='24px' color='#333' />
+      <View className='home__quick'>
+        <View className='home__quick-card' onClick={startTodayReview}>
+          <Text className='home__quick-title'>今日清怪</Text>
+          <Text className='home__quick-desc'>
+            {todayCount > 0 ? `${todayCount} 个待复习` : '暂无到期错词'}
+          </Text>
         </View>
-        <View className='home__user-info'>
-          <Text className='home__user-name'>{loggedIn ? nickName || '已登录' : '点击登录'}</Text>
-          <Text className='home__user-label'>{loggedIn ? '已解锁听写高级功能' : '登录后可编辑生字、上一词、调速'}</Text>
+        <View
+          className='home__quick-card'
+          onClick={() => Taro.navigateTo({ url: '/pages/wrongbook/index' })}
+        >
+          <Text className='home__quick-title'>错词本</Text>
+          <Text className='home__quick-desc'>
+            {learningCount > 0 ? `${learningCount} 只怪兽` : '暂无错词'}
+          </Text>
         </View>
-      </View> */}
+      </View>
 
       <View className='home__section'>
         <View className='home__section-content'>
@@ -143,12 +200,24 @@ export default function IndexPage() {
                       </View>
                     }
                   >
-                    <Cell
-                      title={record.title}
-                      label={`${record.words.join(' ')} · ${formatRecordTime(record.createdAt)}`}
-                      isLink
-                      onClick={() => openRecord(record)}
-                    />
+                    <View className='home__record-row'>
+                      <View className='home__record-main' onClick={() => openRecord(record)}>
+                        <Text className='home__record-title'>{record.title}</Text>
+                        <Text className='home__record-label'>
+                          {record.words.join(' ')} · {formatRecordTime(record.createdAt)}
+                        </Text>
+                      </View>
+                      <TaroButton
+                        className='home__share-btn'
+                        openType='share'
+                        onClick={() => {
+                          setShareWords(record.words)
+                          setShareTitle(record.title)
+                        }}
+                      >
+                        分享
+                      </TaroButton>
+                    </View>
                   </SwipeCell>
                 ))}
               </ScrollView>
@@ -156,7 +225,6 @@ export default function IndexPage() {
           )}
         </View>
       </View>
-
     </View>
   )
 }

@@ -29,6 +29,7 @@ export function useDictationPlayer(initialWords: string[], speed: number) {
 
   const [isPlaying, setIsPlaying] = useState(false)
   const [isPaused, setIsPaused] = useState(false)
+  const [isFinished, setIsFinished] = useState(false)
   const [orderIndex, setOrderIndex] = useState(0)
   const [isRandom, setIsRandom] = useState(true)
   const [intervalSec, setIntervalSec] = useState(5)
@@ -129,6 +130,7 @@ export function useDictationPlayer(initialWords: string[], speed: number) {
             const nextOi = oi + 1
             if (nextOi >= playOrderRef.current.length) {
               syncPlayingState(false, false)
+              setIsFinished(true)
               Taro.showToast({ title: '听写完成', icon: 'success' })
               return
             }
@@ -153,6 +155,7 @@ export function useDictationPlayer(initialWords: string[], speed: number) {
     }
     clearTimer()
     playerRef.current.stop()
+    setIsFinished(false)
     syncPlayingState(true, false)
     preloadAroundOrderIndex(orderIndexRef.current)
     void playWordByOrderIndex(orderIndexRef.current, true)
@@ -196,6 +199,7 @@ export function useDictationPlayer(initialWords: string[], speed: number) {
     }
     clearTimer()
     playerRef.current.stop()
+    setIsFinished(false)
     orderIndexRef.current -= 1
     setOrderIndex(orderIndexRef.current)
     syncPlayingState(false, false)
@@ -204,11 +208,14 @@ export function useDictationPlayer(initialWords: string[], speed: number) {
 
   const goNext = useCallback(() => {
     if (orderIndexRef.current >= playOrderRef.current.length - 1) {
-      Taro.showToast({ title: '已是最后一个', icon: 'none' })
+      setIsFinished(true)
+      syncPlayingState(false, false)
+      Taro.showToast({ title: '听写完成', icon: 'success' })
       return
     }
     clearTimer()
     playerRef.current.stop()
+    setIsFinished(false)
     orderIndexRef.current += 1
     setOrderIndex(orderIndexRef.current)
     syncPlayingState(false, false)
@@ -227,6 +234,7 @@ export function useDictationPlayer(initialWords: string[], speed: number) {
       loadingAudioRef.current.clear()
       clearTimer()
       playerRef.current.stop()
+      setIsFinished(false)
       syncPlayingState(false, false)
       preloadAroundOrderIndex(0)
     },
@@ -253,6 +261,7 @@ export function useDictationPlayer(initialWords: string[], speed: number) {
       : nextWords.map((_, i) => i)
     orderIndexRef.current = 0
     setOrderIndex(0)
+    setIsFinished(false)
     audioUrlsRef.current = []
     loadingAudioRef.current.clear()
     preloadAroundOrderIndex(0)
@@ -273,6 +282,7 @@ export function useDictationPlayer(initialWords: string[], speed: number) {
     progress,
     isPlaying,
     isPaused,
+    isFinished,
     isRandom,
     intervalSec,
     repeatCount,
@@ -284,6 +294,7 @@ export function useDictationPlayer(initialWords: string[], speed: number) {
     goNext,
     applyRandom,
     updateCurrentWord,
+    getPlayOrder: () => [...playOrderRef.current],
     getWords: () => [...wordsRef.current],
   }
 }

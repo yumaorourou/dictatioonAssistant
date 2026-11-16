@@ -1,0 +1,93 @@
+.wrongbook {
+  background: #fff;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+
+  &__hero {
+    margin-bottom: 16px;
+  }
+
+  &__title {
+    display: block;
+    font-size: 40px;
+    font-weight: 700;
+    color: #333;
+  }
+
+  &__desc {
+    display: block;
+    margin-top: 8px;
+    margin-bottom: 20px;
+    font-size: 24px;
+    color: #666;
+  }
+
+  &__review-btn {
+    background: #333 !important;
+    border-color: #333 !important;
+    color: #fff !important;
+  }
+
+  &__tabs {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  &__tab {
+    flex: 1;
+    text-align: center;
+    padding: 14px 4px;
+    border: 2px solid #ddd;
+    border-radius: 10px;
+    font-size: 22px;
+    color: #666;
+
+    &.is-active {
+      border-color: #333;
+      background: #333;
+      color: #fff;
+    }
+  }
+
+  &__list {
+    flex: 1;
+    margin-top: 16px;
+    max-height: calc(100vh - 360px);
+  }
+
+  &__card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 24px;
+    margin-bottom: 16px;
+    border: 3px solid #333;
+    border-radius: 16px;
+
+    &--focus {
+      border-color: #e03131;
+      background: #fff8f8;
+    }
+  }
+
+  &__word {
+    display: block;
+    font-size: 44px;
+    font-weight: 700;
+    color: #333;
+  }
+
+  &__meta {
+    display: block;
+    margin-top: 6px;
+    font-size: 22px;
+    color: #666;
+  }
+
+  &__arrow {
+    font-size: 24px;
+    color: #999;
+  }
+}

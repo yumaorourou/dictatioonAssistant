@@ -1,0 +1,124 @@
+.grade {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: #fff;
+  padding-bottom: 160px;
+
+  &__banner {
+    padding: 8px 8px 24px;
+  }
+
+  &__banner-title {
+    display: block;
+    font-size: 32px;
+    font-weight: 600;
+    color: #333;
+  }
+
+  &__banner-desc {
+    display: block;
+    margin-top: 8px;
+    font-size: 24px;
+    color: #666;
+  }
+
+  &__list {
+    flex: 1;
+    max-height: calc(100vh - 280px);
+  }
+
+  &__item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 24px 20px;
+    margin-bottom: 16px;
+    border: 3px solid #333;
+    border-radius: 16px;
+    background: #fff;
+
+    &--correct {
+      background: #f0faf0;
+      border-color: #2f9e44;
+    }
+
+    &--wrong {
+      background: #fff5f5;
+      border-color: #e03131;
+    }
+  }
+
+  &__item-main {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__item-index {
+    display: block;
+    font-size: 22px;
+    color: #888;
+  }
+
+  &__item-answer {
+    display: block;
+    margin-top: 6px;
+    font-size: 40px;
+    font-weight: 700;
+    color: #333;
+  }
+
+  &__item-actions {
+    display: flex;
+    gap: 12px;
+  }
+
+  &__mark {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 88px;
+    height: 88px;
+    border-radius: 12px;
+    border: 2px solid #ddd;
+    font-size: 22px;
+    color: #666;
+
+    &--correct.is-active {
+      border-color: #2f9e44;
+      background: #2f9e44;
+      color: #fff;
+    }
+
+    &--wrong.is-active {
+      border-color: #e03131;
+      background: #e03131;
+      color: #fff;
+    }
+  }
+
+  &__footer {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    gap: 16px;
+    padding: 16px 24px calc(16px + env(safe-area-inset-bottom));
+    background: #fff;
+    border-top: 1px solid #eee;
+  }
+
+  &__secondary {
+    flex: 0 0 180px;
+  }
+
+  &__submit {
+    flex: 1;
+    background: #333 !important;
+    border-color: #333 !important;
+    color: #fff !important;
+  }
+}

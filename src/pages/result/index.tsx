@@ -6,6 +6,7 @@ import type { WordItem } from '@/types'
 import { getWords } from '@/services'
 import { parseBatchInput } from '@/utils/words'
 import {
+  createTaskFromWords,
   generateId,
   getSession,
   itemsToWords,
@@ -388,10 +389,12 @@ export default function ResultPage() {
     }
 
     const wordList = itemsToWords(words)
+    const title = `听写 ${wordList.slice(0, 3).join('')}${wordList.length > 3 ? '…' : ''}`
     const recordId = generateId()
+    const task = createTaskFromWords(wordList, { id: recordId, title })
     saveRecord({
       id: recordId,
-      title: `听写 ${wordList.slice(0, 3).join('')}${wordList.length > 3 ? '…' : ''}`,
+      title,
       words: wordList,
       imagePath: imagePaths[0] || imagePath,
       imagePaths: imagePaths.length ? imagePaths : [imagePath],
@@ -403,6 +406,9 @@ export default function ResultPage() {
       imagePath: imagePaths[0] || imagePath,
       imagePaths: imagePaths.length ? imagePaths : [imagePath],
       recordId,
+      taskId: task.id,
+      mode: 'dictation',
+      startedAt: Date.now(),
     })
     Taro.navigateTo({ url: '/pages/dictation/index' })
   }
